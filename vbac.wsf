@@ -29,6 +29,7 @@ Options:
                     (default: bin)
   /source:&lt;dir&gt;     Specify directory of source code files
                     (default: src)
+  /file:&lt;name&gt;      With specify file name
   /vbaproj          Use .vbaproj file
   /dbcompact        With Access DB compaction
 </resource>
@@ -213,16 +214,37 @@ CmdParam.prototype.parse = function(args) {
     return this.parameters;
 };
 
-var Config = function(binary, source, binbak) {
+var Config = function(binary, source, binbak, file) {
     var root = fso.GetParentFolderName(scriptPath);
     this.bin = (isPathRooted(binary)) ? binary : fso.BuildPath(root, binary);
     this.src = (isPathRooted(source)) ? source : fso.BuildPath(root, source);
+    this.file = file;
     this.bak = (!binbak.flag) ? undefined
              : (isPathRooted(binbak.value)) ? binbak.value
              : fso.BuildPath(root, binbak.value);
 };
-Config.prototype.getBins = function() { return fso.GetFolder(this.bin).Files; };
-Config.prototype.getSrcs = function() { return fso.GetFolder(this.src).SubFolders; };
+Config.prototype.getBins = function() {
+	println(this.file);
+    if (this.file != '') {
+        return [{
+            "Name" : this.file,
+            "Path" : fso.BuildPath(this.bin, this.file)
+        }];
+    } else {
+        return fso.GetFolder(this.bin).Files;
+    }
+};
+Config.prototype.getSrcs = function() {
+	println(this.file);
+    if (this.file != '') {
+        return [{
+            "Name" : this.file,
+            "Path" : fso.BuildPath(this.src, this.file)
+        }];
+    } else {
+        return fso.GetFolder(this.src).SubFolders;
+    }
+};
 
 var VBAProjFile = function(vbproj, srcdir) {
     this.vbproj   = vbproj;
@@ -1019,7 +1041,7 @@ Command.prototype.acdoc = function() {
 
 var CommandHelper = function(param) {
     this.parameter = param;
-    this.config  = new Config(param.binary, param.source, param.binbak);
+    this.config  = new Config(param.binary, param.source, param.binbak, param.file);
     this.command = new Command(this);
 };
 CommandHelper.prototype.getAppName = function(fname) {
@@ -1116,6 +1138,7 @@ function main(args) {
             commandType: "help",
             binary:      "bin",
             source:      "src",
+            file:        "",
             binbak:      new Conditional("bak"),
             vbaproj:     false,
             incQuery:    false,
